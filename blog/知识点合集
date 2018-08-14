@@ -1,0 +1,203 @@
+1. author = models.ForeignKey(User, related_name="blog_posts"）
+ related_name="blog_posts"-允许类User反向查询到BlogArticles
+2.ordering = ("-publish",) 按照publish的倒序显示
+3.list_display:显示字段 按顺序排序
+4.list_filter:过滤条件
+5.search_fields = ('title', 'body') 
+想显示另一个表的字段，跨表查询时，表名__字段，即可
+  出现了一个搜索框，页面会把这两个字段当作检索条件
+6.raw_id_fields = ('author',) 在后台点开文章之后，会显示出作者的原始id
+7.date_hierarchy = 'publish'  详细时间分层筛选
+8.ordering = ['publish', 'author']
+  在页面上让这两个字段可以顺序排，可以逆序排，多了个按钮
+9.settings中，'APP_DIRS': False，不再允许Django按照默认方式寻找模版文件
+10.{% load staticfiles %} 声明引入静态文件的标签，只有使用它，才能使用
+  src="{% static '/images/logo.png' %}"
+11.在url中用到namespace='blog'时，必须在对应的应用url中表明
+  app_name = 'blog'
+12.src={% static 'images/django.png' %},引用静态文件时，images前不能跟"/";
+  父模版中引用了{% load staticfiles %}，子模版中想用时，还得load一下
+13.login_form = LoginForm(request.POST)
+  将请求传入，login_form就成了一个已绑定的实例
+14.authenticate()函数的作用是检验此用户是否为本网站项目的用户，
+如果都对上号了，就返回User的一个实例对象
+  login()函数，以这个实例对象为参数，实现用户登录，登陆之后，
+  Django会自动调用默认的session应用，将用户ID保存在session中，完成用户登录操作
+15.href="{% url 'account:user_login' %}"
+account是应用的namespace，冒号后面是URL的name
+16.LOGIN_REDIRECT_URL = '/blog' 登陆后重定向的设置
+17.一般情况下，如果要将表单中的数据写入数据库或者修改某些记录的值，就要让该表单类继承ModelForm,
+  如果提交表单之后不会对数据库进行修改，则继承Form.
+18.class RegistrationForm(forms.ModelForm):
+    password = forms.CharField(...)
+    password2 = forms.CharField(...)
+    class Mata:内部类，声明要用哪张表
+        model = User
+        fields = ("uaername", "email") 选用哪些字段(页面上传来的再多，只向这两个字段写入数据)
+    def clean_password2(self):
+        cd = self.cleaned_data
+        if cd['password'] != cd['password2']:
+            raise forms.ValidationError("passwords do not match.")
+        return cd['password2']
+  这两个密码属性是在在这里重新定义的，如同LoginForm表单里定义的两个属性，这里定义了就意味着覆盖
+或者不需要在内部类Meta中声明；以“clean+属性名称”命名方式所创建的方法，在调用is_valid()
+时会被执行
+19.默认的User表中的字段不能满足要求时，就需要自定制
+
+20.在user_form、userprofile_form没有save之前本质上就是个Form类
+new_user = user_form.save(commit=False)
+        本质：<class 'django.contrib.auth.models.User'>
+new_profile = userprofile_form.save(commit=False)
+        本质：<class 'account.models.UserProfile'>
+new_profile.user = new_user  本质是在UserProfile表中记录User表中的用户id
+
+21.auth_views.password_change向这个函数传的这个参数：
+  "post_change_redirect": "/account/password-change-done"
+  是让其在resolve_of这个参数之后知道，去namespace=account的应用中，
+  找URL中name=password-change-done的地址，密码修改完成后跳转到这里
+
+22.上面代码中两处使用了同一个id选择器，JQuery建议你使用一个变量去存储这个选择器，
+而不是每次用的时候便拿来调用一下，它不会帮你做缓存，而是重新去取。
+23.src="{{ userinfo.photo | striptags }}"
+  将从数据库读出来的对象内容进行过滤，striptags的意思是取出HTML标签
+24.parent.location.reload(); 上传之后自动关闭提示框，并刷新提示框的父页面
+25.{% for column in columns %}
+  如果columns引用的对象为空，则通过{% empty %}执行后面的内容
+
+26.如果用到User表中的用户时，可以这样ArticleColumn.objects.filter(user=request.user)
+  也可以这样user_id=request.user.id,还可以这样  user=request.user.id
+想要用username去查，只能这样user = User.objects.get(username=request.user.username)，
+获得一个modle实例
+
+27.{{ column_form.column }}在模版中会显示成下面这样(id自动被加上了)：
+<input type="text" name="column" maxlength="200" required id="id_column" >
+  margin-left--左外边距
+28.name = $(the).parents("tr").children("td").eq(1).text();
+  获取原来叫什么名字，放到input框中,还得是这么放：value="'+name+'"
+29.链接过滤：
+  user = User.objects.filter(username_endwidth="laoshi").exclude(id_gt=7)
+order_by--排序
+30.在数据模型类中定义的related_name="",在视图函数中应用时，例如
+  request.user.article_column.get(id=request.POST['column_id'])
+  在“.”了之后，就相当于class ArticleColumn(models.Model)它了，这个类里面的字段就能用了
+
+31.models.ForeignKey指定表之后，自动关联对应表的id
+  ordering = ("-updated",) 按照发布时间的倒序排列
+  如果在model类中定义了related_name，那么使用_set进行的查询就不能使用了
+
+32.在请求方式是"GET"时，将这个传给前端
+this_article_form = ArticlePostForm(initial={"title":article.title})
+  目的是在前端生成一个input框
+
+33.分页功能：1.首先获取所有实例(queryset)；
+2.传给Paginator，paginator = Paginator(articles_list, 2)
+3.并获取当前页：page = request.GET.get('page')
+4.current_page = paginator.page(page) 获得该页面内容
+5.articles = current_page.object_list 得到该页所有的文章对象
+6.如果是PageNotAnInteger，就返回第一页内容；
+如果是EmptyPage，就返回paginator.num_pages(总页数)，也就是跳到最后一页
+
+34.在页面中应用到{% for article in articles %}，
+article就是得到的ArticlePost实例对象中的一条记录
+article.author.username，意思是通过author这个字段可以去查User表中的username，
+
+35.class UserInfo(models.Model):
+    user = models.OneToOneField(User,...)
+UserInfo跟User建立了一对一的关系，要通过User实例得到UserInfo的信息，可以使用过这样的模式
+userinfo = user.userinfo，只不过一定要用英文小写
+
+36.写这个知识点是因为，老齐的代码中，游客登录时，在header.html显示了
+  某作者的下拉框，这个不应该出现，所以改动了两处代码，
+  一个是：看某作者的文章时，不返回{"user":user，}；
+  第二个是：在author_articles.html中，
+  将<{{ user.username }}改为{{ userinfo.user.username }}
+
+已登录的用户(如lisi)，在查看全部文章时，向服务器发出的请求request中已包含该登录用户，
+  在渲染返回的页面时，该request，被header.html中的{% if user.is_authenticated %}
+用到，所以，虽然没有在视图函数中返回{"user":user，},但是，request中有。
+
+37.如果不同对象之间建立了一对多或者多对多的关联关系，那么就可以使用add(*obj,bulk-True)
+  方法增加属性的值，如：article.users_like.add(request.user)
+用users_like.all()正向查过去的结果是所有人，用articles_like.all()反查的结果是所有文章
+
+38.onclick="like_article({{article.id}}, 'like',onclick可以向绑定的
+事件传递参数和action
+
+39.redis知识点：total_views = r.incr(...),
+incr函数的作用就是让当前的键值递增，然后返回递增后的值
+40.获取POST发来的数据时，得这样  content=request.POST["content"]，
+获取GET发来的数据，得这样  page = request.GET.get('page')
+41.layer.msg("我会继续努力",{icon: 1,timeout:0,end:function()
+{window.location.reload()}}); 这个弹出框时间太长，设置了超时时间也不管用
+想用layer必须引用layer.js
+42.可以在前端这么设计，如果游客来，只能看不能评论，如果是登录的，直接把评论员给写死，
+然后在数据库中，不要将commentator设置为主键，可以设置为惟一键；
+唯一键和主键的一个区别是：唯一键允许为空，但是主键不能为空！可以设置多个惟一键，
+也可以这样自己写一个id字段，自增但不是主键，然后把commentator设置为主键和惟一键。
+
+43.现在非常欠缺error，错误信息返回，
+
+
+44.c = ArticlePost.objects.annotate(total_comments=Count('comments'))
+annotate()函数是要给查询到的文章对象进行标注，用Count('comments')进行标注,
+c[0].total_comments,可以得到第一篇文章的评论数，也是related_name的变种用法，
+  想要查看某条语句的原生sql： from django.db import connection
+  print(connection.queries) ，上面那条语句的查询用了十几行
+
+45.想要在python文件中用到related_name，因为是一对多，就要先把那个一给查出来，例如：
+a = ArticlePost.objects.get(id=11).comments.all()
+  如果查询结果是多条的话，就不能用get，得用filter，
+b = Comment.objects.filter(article_id=11)，这两条查询语句的结果都是：
+<QuerySet [<Comment: Comment by zhangsi on MySQL数据库优化方法>,
+<Comment: Comment by wangwu on MySQL数据库优化方法>]>
+这个什么by什么on是在__str__里面定义的。
+
+46.$.each($("input[name='article_tag;]:checked"),
+function () {article_tags.push($(this).val());});把选中的值放到空列表中
+在书写的时候，我把这行拼错了...
+"tags":JSON.stringify(article_tags),向后台发送数据，发送列表，不存在的，只能发字符串，
+后台得转换成列表形式：json.loads(tags)
+
+47.def clean_url(self):作用是处理某个字段值，命名规则是clean_<filename>,
+并且这个字段名，只能是class Meta中规定的fields = ('title', 'url', 'description')
+  url.rsplit('.', 1)[1],rsplit从字符串最后面开始分割，默认以空格进行分割，这里的1是分割次数，
+分割完之后取列表中的第二个元素，也就是图片的后缀名
+
+48.如何在视图函数中返回JSON值，
+return HttpResponse(json.dumps(data),content_type='applications/json')
+在基于类的视图中，return self.render_json_response(data)
+
+49.用户以GET方式请求时，即在页面中显示表单，CreateView就是完成这个作用的类，
+继承它就不用再写get()方法了
+class DeleteCourseView(UserCourseMixin, DeleteView):
+在这个类中重写了DeleteView的dispatch方法，
+先执行--resp = super(DeleteCourseView, self).dispatch(..)
+如果不继承，就无法进行删除动作了。
+
+50.给class="delete"绑定事件的时候，它本质是一个a标签，是要跳转的，但我们只想根据a标签里面的url，
+做出删除动作，如果在js中不做限制的话，他就会向http://127.0.0.1:8000/course/delete-course/6/
+发出GET请求，这被DeleteCourseView处理之后，就会抛出异常，
+在大多数情况下,为事件处理函数返回false,可以防止默认的事件行为，
+js中return false作用一般是用来取消默认动作 / 阻止提交表单 / 阻止继续执行下面的代码。
+
+51.这里自定义的OrderField字段，是要得到对象排序的序号，每个课程标题会有多个内容，
+让这些课程内容在对应的标题下，按顺序创建.
+
+pre_save()的作用就是在保存之前对数值进行预处理。
+  重写pre_save()方法，model_instance引用的是实例<class 'course.models.Lesson'>，
+1.第一步先判断实例中是否有某个字段，getattr(model_instance, self.attname)
+  这里的self.attname就是order，在这个pre_save()中，实例还么有order这个属性，
+2.qs = self.model.objects.all()，得到当前实例所有记录，
+3.query = {field: getattr(model_instance, field) for field in self.for_fields}
+这句话得到这个课程内容选的是什么课程标题
+4.qs = qs.filter(**query)  对之前查到的结果进行过滤,找到标题一样的课程
+5.last_item = qs.latest(self.attname)  取最后一条
+6.value = last_item.order + 1  将序号加1，然后返回序号
+
+  
+  
+  
+  
+  
+  
+  

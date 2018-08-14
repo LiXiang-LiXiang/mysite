@@ -1,0 +1,53 @@
+52.**.filter(name__contains="press")相当于SQL语句中的..WHERE name LIKE '%press%';
+如果需要以多个字段为标准进行排序（第二个字段会在第一个字段的值相同的情况下被使用到），
+  .order_by("state_province", "address")
+我们还可以指定逆向排序，在前面加一个减号 - 前缀：
+  .order_by("-name")
+每次都要用 order_by() 显得有点啰嗦--class Meta:
+										ordering = ['name']
+限制返回的数据：**.order_by('name')[0]相当于** ORDER BY name LIMIT 1;
+**.order_by('name')[0:2]相当于OFFSET 0 LIMIT 2;
+不支持Python的负索引**order_by('name')[-1]，但可以这样**order_by('-name')[0]
+
+53. p = Publisher.objects.get(name='Apress')  p.name = 'Apress Publishing'
+ p.save(),这种方法是将字段全部更新。这样更好：
+   Publisher.objects.filter(id=52).update(name='Apress Publishing')
+删除数据库中的对象只需调用该对象的delete()方法即可：p.delete()
+也可以调用delete()方法同时删除多条记录
+  Django要求在删除表内所有数据时显示使用all()。
+
+54.verbose_name = u'班级列表' ('管理员表' 显示名:管理员表s)
+  verbose_name_plural = u"班级列表"  (‘管理员表’ 显示名：‘管理员表’)
+  unique_together = ("course","course_type","semester")  联合唯一索引
+
+
+55.models.User.objects.all() 之前我们用到的查询方法如上，这种查询方法操作简单，
+  但是很影响性能；每次执行print(row.ut.name)时，,都会向数据库发起一次请求查询
+  users = models.User.objects.all().values('user','pwd','ut_id','name')
+#发起一次查询操作，包含所有内容.valuse方法确实是比all（）效率高了，也是最简单的方法；
+但是values查询出来的数据是字典形式，而不是QuerySet，QuerySet中的很多方法都不在能使用.
+  连表查询select_related()
+  users = models.User.objects.all().select_related()
+  #一次查询User表相关联的所有表数据表及内容
+   users_ut = models.User.objects.all().select_related('ut')
+  上述操作解决了vaules()的问题，一次查询即可完成操作；但是，select_related()用到的是连表操作，
+  如果关联数据表多个的话，也会非常的影响性能；连表查询速度慢
+  多次SQL查询实现连表操作prefetch_related()
+  users = models.User.objects.filter(id__gt=30).prefetch_related('ut')
+  #第一查询id>30的User表内容包含ut_id,根据ut_id再次查询UserType表查询 没有连表操作
+  class UserInfo(models.Model):
+    name = models.CharField(max_length=32)
+    email = models.EmailField()
+
+    def clean(self):    #自定制钩子，进行name唯一性验证
+        from django.core.exceptions import ValidationError
+        c = UserInfo.objects.filter(name=self.name).count()
+        if c:
+            raise ValidationError(message='用户名已经存在',code='任意')
+
+  def index(request):
+    obj = models.UserInfo(name='Alex',email='James')
+    obj.full_clean()        #执行验证
+    obj.save()
+
+    return HttpResponse('OK')
